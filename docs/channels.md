@@ -7,8 +7,8 @@ platform-native events (messages, button clicks, slash commands) into
 turnstone API calls, and renders workstream output back into the
 platform's UI.
 
-Discord and Slack adapters ship today. The adapter protocol is designed
-so new platforms can be added with only a new package under
+Discord, Slack, and Telegram adapters ship today. The adapter protocol is
+designed so new platforms can be added with only a new package under
 `turnstone/channels/<platform>/`.
 
 ---
@@ -16,10 +16,10 @@ so new platforms can be added with only a new package under
 ## Architecture
 
 ```
-Discord Gateway        Slack (Socket Mode WebSocket)
-       \                  /
-        v                v
-       turnstone-channel  (one or more adapters)
+Discord Gateway    Slack (Socket Mode WS)   Telegram (long polling)
+       \                  /                    /
+        v                v                    v
+      turnstone-channel  (one or more adapters)
               |
               v
        turnstone-server   (direct HTTP)
@@ -186,6 +186,59 @@ both and the gateway hosts both adapters in one process.
 
 ---
 
+## Telegram Setup
+
+Telegram uses **long polling** against the Bot API — no public URL is
+required. Install with:
+
+```bash
+pip install 'turnstone[telegram]'
+```
+
+### 1. Create a Bot
+
+1. Message [@BotFather](https://t.me/BotFather) on Telegram and send
+   `/newbot`. Follow the prompts to choose a display name and a username
+   (ending in `bot`).
+2. Copy the **bot token** it returns (format `<digits>:<secret>`).
+3. Optionally enable *privacy mode off* for groups via BotFather so the
+   bot can see all group messages, not just mentions.
+
+### 2. Configure Turnstone
+
+```bash
+TURNSTONE_TELEGRAM_TOKEN=[REDACTED]        # bot token from BotFather
+```
+
+or bare-metal:
+
+```bash
+turnstone-channel \
+  --telegram-token "123456:ABC..." \
+  --server-url http://localhost:8080
+```
+
+All three adapters (Discord, Slack, Telegram) can run in one process —
+pass the tokens for every platform you want to enable.
+
+### 3. Usage
+
+- **DM the bot**: each private chat is scoped to its own workstream;
+  messages route freely.
+- **Groups**: the bot only engages when it is mentioned by `@username`
+or when a message replies directly to one of its own messages.
+- Tool approvals render as Telegram **inline keyboard** buttons (Approve
+  / Deny) on the prompt itself.
+- Linking: send `/link <your_api_token>` in a DM to map your Telegram
+  account to a turnstone user; `/unlink` reverses it. Messages from
+  unlinked users are dropped with an inline hint.
+- Session recovery and notification replies work identically to the other
+  adapters — persisted channel routes re-subscribe on restart, and
+  replying to a delivered notification routes back to its origin
+  workstream.
+
+---
+
 ## Usage
 
 ### Conversations
@@ -272,6 +325,7 @@ still requiring manual approval for others).
 | `--slack-app-token` | `TURNSTONE_SLACK_APP_TOKEN` | — | Slack App-Level token (`xapp-…`, required with `--slack-token`) |
 | `--slack-channels` | `TURNSTONE_SLACK_CHANNELS` | empty (all) | Comma-separated Slack channel IDs to allow |
 | `--slack-slash-command` | `TURNSTONE_SLACK_SLASH_COMMAND` | `/turnstone` | Slash command name registered in the Slack app |
+| `--telegram-token` | `TURNSTONE_TELEGRAM_TOKEN` | — | Telegram bot token from BotFather (required to enable Telegram) |
 | `--server-url` | `TURNSTONE_SERVER_URL` | `http://localhost:8080` | Server URL (single-node) |
 | `--console-url` | `TURNSTONE_CONSOLE_URL` | — | Console URL (multi-node routing proxy) |
 | `--model` | — | server default | Default model for new workstreams |
@@ -281,8 +335,9 @@ still requiring manual approval for others).
 | `--log-level` | `TURNSTONE_LOG_LEVEL` | `INFO` | Log level |
 | `--log-format` | `TURNSTONE_LOG_FORMAT` | `auto` | Log format (`auto`/`json`/`text`) |
 
-At least one of `--discord-token` or `--slack-token` must be supplied.
-Passing both starts both adapters in the same process.
+At least one of `--discord-token`, `--slack-token`, or `--telegram-token`
+must be supplied. Passing several starts all selected adapters in the
+same process.
 
 ---
 
