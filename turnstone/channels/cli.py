@@ -1,6 +1,6 @@
 """Unified channel gateway entry point.
 
-Launches one or more channel adapters (Discord, Slack, etc.) connected to
+Launches one or more channel adapters (Discord, Slack, Telegram, etc.) connected to
 the turnstone server via HTTP.  An HTTP server runs alongside for inbound
 notification delivery from the server.
 
@@ -94,6 +94,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--slack-slash-command",
         default=os.environ.get("TURNSTONE_SLACK_SLASH_COMMAND", "/turnstone"),
         help="Slack slash command name (default: /turnstone)",
+    )
+
+    # -- Telegram ----------------------------------------------------------
+    parser.add_argument(
+        "--telegram-token",
+        default=os.environ.get("TURNSTONE_TELEGRAM_TOKEN", ""),
+        help="Telegram bot token (default: $TURNSTONE_TELEGRAM_TOKEN)",
     )
 
     # -- HTTP server ---------------------------------------------------------
@@ -279,6 +286,25 @@ def _build_adapters(
         )
         adapters[slack_bot.channel_type] = cast("ChannelAdapter", slack_bot)
 
+    if args.telegram_token:
+        from turnstone.channels.telegram.bot import TurnstoneTelegramBot
+        from turnstone.channels.telegram.config import TelegramConfig
+
+        telegram_config = TelegramConfig(
+            model=args.model,
+            auto_approve=args.auto_approve,
+            bot_token=args.telegram_token,
+        )
+        telegram_bot = TurnstoneTelegramBot(
+            telegram_config,
+            server_url=server_url,
+            storage=storage,
+            console_url=console_url,
+            console_token_factory=console_token_factory,
+            server_token_factory=server_token_factory,
+        )
+        adapters[telegram_bot.channel_type] = cast("ChannelAdapter", telegram_bot)
+
     return adapters
 
 
@@ -398,7 +424,7 @@ def main() -> None:
     if bool(args.slack_token) != bool(args.slack_app_token):
         raise SystemExit("--slack-token and --slack-app-token must be provided together")
 
-    has_adapters = bool(args.discord_token or args.slack_token)
+    has_adapters = bool(args.discord_token or args.slack_token or args.telegram_token)
 
     # Adapters need to reach the server/console; standby doesn't.
     if has_adapters and not console_url and not server_url:

@@ -76,7 +76,8 @@ test = ["pytest>=9.0", "pytest-cov>=6.0", "slack-bolt>=1.18", "aiohttp>=3.9"]
 dev = ["ruff>=0.9", "mypy>=1.14"]
 discord = ["discord.py>=2.4"]
 slack = ["slack-bolt>=1.18", "aiohttp>=3.9"]
-all = ["turnstone[discord,slack]"]
+telegram = ["python-telegram-bot>=21"]
+all = ["turnstone[discord,slack,telegram]"]
 
 [project.scripts]
 turnstone = "turnstone.cli:main"
