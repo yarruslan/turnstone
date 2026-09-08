@@ -1062,7 +1062,7 @@ function _renderChannels(channels) {
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
     const ctClass =
-      ctSlug && (ctSlug === "discord" || ctSlug === "slack")
+      ctSlug && (ctSlug === "discord" || ctSlug === "slack" || ctSlug === "telegram")
         ? "scope-badge scope-" + ctSlug
         : "scope-badge scope-channel";
     html +=
