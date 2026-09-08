@@ -307,6 +307,50 @@ class TestApprovalCallbacks:
 
 
 # ---------------------------------------------------------------------------
+# /link command
+# ---------------------------------------------------------------------------
+
+
+class TestLinkCommand:
+    """Tests for TurnstoneTelegramBot._on_link_command argument parsing."""
+
+    def _link_context(self, args: list[str]) -> MagicMock:
+        context = _make_context()
+        context.command = "link"
+        context.args = args
+        return context
+
+    def test_single_token_passes_to_validation(self) -> None:
+        """The normal private-chat case: /link <token> with exactly one arg."""
+        from turnstone.core.auth import hash_token
+
+        bot, _router = _make_bot()
+        update = _make_update()
+        bot.storage.get_channel_user = MagicMock(return_value=None)  # type: ignore[attr-defined]
+        bot.storage.get_api_token_by_hash = MagicMock(return_value={"user_id": "ts-user-9"})  # type: ignore[attr-defined]
+        bot.storage.create_channel_user = MagicMock()  # type: ignore[attr-defined]
+
+        _run(bot._on_link_command(update, self._link_context(["tok-123"])))  # type: ignore[attr-defined]
+
+        # The single token reaches validation — the original bug dropped it.
+        bot.storage.get_api_token_by_hash.assert_called_once_with(  # type: ignore[attr-defined]
+            hash_token("tok-123")
+        )
+        bot.storage.create_channel_user.assert_called_once()  # type: ignore[attr-defined]
+        reply = update.effective_message.reply_text.call_args.args[0]
+        assert "Linked" in reply
+
+    def test_empty_args_yields_usage(self) -> None:
+        bot, _router = _make_bot()
+        update = _make_update()
+
+        _run(bot._on_link_command(update, self._link_context([])))  # type: ignore[attr-defined]
+
+        reply = update.effective_message.reply_text.call_args.args[0]
+        assert "Usage" in reply
+
+
+# ---------------------------------------------------------------------------
 # CLI wiring
 # ---------------------------------------------------------------------------
 

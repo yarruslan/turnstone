@@ -446,7 +446,7 @@ class TurnstoneTelegramBot:
             return
 
         args = context.args
-        token = args[0] if args and len(args) > 1 else ""
+        token = args[0] if args else ""
         if not token:
             await message.reply_text("Usage: `/link <your_api_token>`")
             return
