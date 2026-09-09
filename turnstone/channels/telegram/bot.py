@@ -558,7 +558,7 @@ class TurnstoneTelegramBot:
             effective_route = self._notify_reply_routes.get(ws_id, channel_id)
             await self._on_ws_event(ws_id, effective_route, event)
 
-        async def _on_stale() -> None:
+        async def _on_unavailable() -> None:
             chat_id = _parse_chat_id(channel_id)
             if chat_id is not None and self._channel_sessions.get(chat_id) == ws_id:
                 del self._channel_sessions[chat_id]
@@ -575,7 +575,7 @@ class TurnstoneTelegramBot:
             node_url_fn=self.router.get_node_url,
             token_factory=self._token_factory,
             on_event=_on_event,
-            on_stale=_on_stale,
+            on_unavailable=_on_unavailable,
         )
 
     async def _on_ws_event(self, ws_id: str, channel_id: str, event: ServerEvent) -> None:
