@@ -235,6 +235,80 @@ class TestMessageRouting:
 
 
 # ---------------------------------------------------------------------------
+# SSE wiring (run_sse_stream call site)
+# ---------------------------------------------------------------------------
+
+
+class TestSseWiring:
+    """Tests that _sse_listener calls run_sse_stream with the current shared API.
+
+    Regression for the on_stale -> on_unavailable rename: subscribe_ws
+    fire-and-forgets _sse_listener via create_task and never awaits it, so a
+    bad kwarg raises TypeError that asyncio swallows ("Task exception was
+    never retrieved") and no test fails. We stub run_sse_stream with the SAME
+    keyword-only signature as the real helper so a wrong kwarg raises exactly
+    as in production, then await the listener task (suppressing only
+    CancelledError) so that TypeError surfaces as a test failure.
+    """
+
+    def test_run_sse_stream_called_with_on_unavailable(self) -> None:
+        import contextlib
+
+        from turnstone.channels.telegram import bot as bot_mod
+
+        calls: list[dict] = []
+
+        async def fake_run_sse_stream(
+            *,
+            http_client,  # type: ignore[no-untyped-def]
+            log_prefix,  # type: ignore[no-untyped-def]
+            ws_id,  # type: ignore[no-untyped-def]
+            node_url_fn,  # type: ignore[no-untyped-def]
+            token_factory,  # type: ignore[no-untyped-def]
+            on_event,  # type: ignore[no-untyped-def]
+            on_unavailable,  # type: ignore[no-untyped-def]
+        ) -> None:
+            """Mirror the real run_sse_stream keyword-only signature."""
+            calls.append(
+                {
+                    "ws_id": ws_id,
+                    "on_event": on_event,
+                    "on_unavailable": on_unavailable,
+                }
+            )
+            raise asyncio.CancelledError  # stop the infinite loop after capture
+
+        bot, router = _make_bot()
+
+        async def drive() -> None:
+            with patch.object(bot_mod, "run_sse_stream", fake_run_sse_stream):
+                # Same entry point the other routing tests use: a private-chat
+                # message on a new ws triggers subscribe_ws -> _sse_listener.
+                update = _make_update(chat_id=42, text="hello")
+                await bot._on_message(update, _make_context())  # type: ignore[attr-defined]
+                # Await the fire-and-forgotten task so a TypeError can't be
+                # swallowed. Suppress ONLY CancelledError (our stub's exit
+                # signal) — NOT Exception — so a real TypeError propagates.
+                task = bot._sse_tasks["ws-1"]  # type: ignore[attr-defined]
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+
+        _run(drive())
+
+        assert len(calls) == 1
+        assert calls[0]["ws_id"] == "ws-1"
+        assert callable(calls[0]["on_unavailable"])
+
+        # Invoke the captured on_unavailable and assert it ran the cleanup:
+        # route deleted + ws state cleared (session dropped, task popped).
+        bot._channel_sessions[42] = "ws-1"  # type: ignore[attr-defined]
+        _run(calls[0]["on_unavailable"]())
+        router.delete_route.assert_awaited_once_with("telegram", "42")
+        assert "ws-1" not in bot._sse_tasks  # type: ignore[attr-defined]
+        assert "ws-1" not in bot._channel_sessions  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
 # Approval callbacks
 # ---------------------------------------------------------------------------
 
