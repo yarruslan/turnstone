@@ -102,6 +102,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("TURNSTONE_TELEGRAM_TOKEN", ""),
         help="Telegram bot token (default: $TURNSTONE_TELEGRAM_TOKEN)",
     )
+    parser.add_argument(
+        "--telegram-channels",
+        default=os.environ.get("TURNSTONE_TELEGRAM_CHANNELS", ""),
+        help="Comma-separated list of allowed Telegram chat IDs (default: all)",
+    )
 
     # -- HTTP server ---------------------------------------------------------
     parser.add_argument(
@@ -294,6 +299,9 @@ def _build_adapters(
             model=args.model,
             auto_approve=args.auto_approve,
             bot_token=args.telegram_token,
+            allowed_chat_ids=[
+                int(c.strip()) for c in args.telegram_channels.split(",") if c.strip()
+            ],
         )
         telegram_bot = TurnstoneTelegramBot(
             telegram_config,

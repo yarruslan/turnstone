@@ -365,3 +365,14 @@ class TestCliWiring:
         ).read()
         assert "args.telegram_token" in source
         assert "bool(args.discord_token or args.slack_token or args.telegram_token)" in source
+
+    def test_telegram_channels_flag_parses_chat_ids(self) -> None:
+        """--telegram-channels is registered and parses comma-separated int chat IDs."""
+        from turnstone.channels.cli import _build_parser
+
+        parser = _build_parser()
+        args = parser.parse_args(["--telegram-token", "1:AA", "--telegram-channels", "1, -200 , 3"])
+        chat_ids = [int(c.strip()) for c in args.telegram_channels.split(",") if c.strip()]
+        assert chat_ids == [1, -200, 3]
+        # Omitting the flag yields an empty allowlist = allow all chats.
+        assert parser.parse_args(["--telegram-token", "1:AA"]).telegram_channels == ""
