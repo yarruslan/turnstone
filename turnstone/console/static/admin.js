@@ -1416,8 +1416,8 @@ function _decorateScheduleModelPlaceholder(sel, data) {
 }
 
 // Channel platforms shown in admin notify-target rows.  Mirror server-side
-// channel adapters; expand here when a new adapter ships (Discord / Slack
-// today, MS Teams / etc. later).
+// channel adapters; expand here when a new adapter ships (Discord / Slack /
+// Telegram today, MS Teams / etc. later).
 const _NOTIFY_CHANNEL_TYPES = [
   {
     value: "discord",
@@ -1428,6 +1428,11 @@ const _NOTIFY_CHANNEL_TYPES = [
     value: "slack",
     label: "Slack",
     id_hint: "Slack ID (e.g. C01234567 or U01234567)",
+  },
+  {
+    value: "telegram",
+    label: "Telegram",
+    id_hint: "Telegram ID (e.g. 1234567890)",
   },
 ];
 

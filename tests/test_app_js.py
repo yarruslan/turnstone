@@ -1006,6 +1006,33 @@ def test_capability_tiles_agree_with_the_capabilities_dataclass() -> None:
     assert "server_parses_reasoning" in keys
 
 
+def test_notify_channel_types_list_every_live_adapter() -> None:
+    """The notify-target rows (Schedules "Notify on completion" and channel
+    creation) build their platform dropdown from ``_NOTIFY_CHANNEL_TYPES``.
+    A channel adapter that is live server-side but missing here is a silent
+    regression: the operator can't pick it for a notify target even though
+    the backend would accept it.  Every shipped adapter must appear.
+
+    The backend imposes no allowlist (``_validate_notify_targets`` accepts
+    any non-empty ``channel_type`` string), so parity is the whole contract:
+    what the console can offer must match what the adapters can serve.
+    """
+    admin = _CONSOLE_ADMIN_JS.read_text(encoding="utf-8")
+
+    block = re.search(r"const _NOTIFY_CHANNEL_TYPES = \[(.*?)\];", admin, re.S)
+    assert block, "_NOTIFY_CHANNEL_TYPES not found in admin.js"
+    values = re.findall(r'value:\s*"(\w+)"', block.group(1))
+
+    assert values, "no channel types parsed from _NOTIFY_CHANNEL_TYPES"
+    for expected in ("discord", "slack", "telegram"):
+        assert expected in values, (
+            f"live adapter {expected!r} missing from _NOTIFY_CHANNEL_TYPES "
+            f"(dropdown would hide it); got {values}"
+        )
+    # No duplicate platforms in the dropdown.
+    assert len(values) == len(set(values)), f"duplicate channel type in {values}"
+
+
 def test_model_response_controls_are_capability_driven_and_sparse() -> None:
     """The model shelf surfaces Responses-only scalar controls without
     hard-coding GPT-5.6 IDs or pinning inherited capability-table values."""
