@@ -546,3 +546,19 @@ To add a new platform:
    `turnstone[slack]`)
 
 See `turnstone/channels/discord/` as a reference implementation.
+
+---
+
+## Adding a channel to the web console
+
+The backend steps above make the adapter work. To surface the platform in the
+console (Admin > Channels), it must also be registered in a few frontend
+touchpoints under `turnstone/console/static/`. The value in each is the exact
+`channel_type` string the backend emits (e.g. `telegram`).
+
+- `index.html` — the `#cc-type` `<select>` in the `#channel-shelf` dialog
+  needs a new `<option>` so the platform is selectable in the link-channel
+  form.
+- `admin.js` — the `_NOTIFY_CHANNEL_TYPES` array needs a new entry so the
+  platform appears in the Schedules "Notify on completion" rows (built by
+  `_addNotifyRow()`) and in the link-channel ID-input placeholder.
