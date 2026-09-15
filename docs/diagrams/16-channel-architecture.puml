@@ -30,6 +30,16 @@ class "Slack" as Slack <<platform>> {
     asyncio event loop
 }
 
+class "Telegram" as Telegram <<platform>> {
+    Long polling (no webhook)
+    Message events
+    /link + /unlink commands
+    4096-char chunking + edit-in-place streaming
+    --
+    python-telegram-bot 21+
+    asyncio event loop
+}
+
 class "Teams (future)" as Teams <<platform>> {
     Bot Framework
     Adaptive Cards
