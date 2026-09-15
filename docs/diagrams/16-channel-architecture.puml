@@ -91,6 +91,17 @@ class "DiscordBot" as Bot <<service>> {
     _notify_reply_channels: ws_id -> (dm, user_id)
 }
 
+class "TelegramBot" as TelegramBot <<service>> {
+    +on_message(update)
+    +on_callback_query(update)  (approval buttons)
+    +send(channel_id, content)
+    +send_notification(channel_id, content, ws_id)
+    --
+    python-telegram-bot Application
+    Long-polling client
+    4096-char chunking + edit-in-place streaming
+}
+
 class "ChannelRouter" as Router <<service>> {
     +get_or_create_workstream(channel_type, channel_id)
     +_is_ws_live(ws_id)
@@ -132,7 +143,7 @@ class "turnstone-server" as Server <<server>> {
 ' -- Storage --
 class "channel_users" as CU <<storage>> {
     channel_user_id (PK)
-    platform: "discord" | "slack"
+    platform: "discord" | "slack" | "telegram"
     platform_user_id
     user_id -> users
     linked_at
@@ -184,10 +195,16 @@ SlackBot --> Router : on_message / on_action
 SlackBot --> Server : owning-node SSE after route lookup
 SlackBot --> Slack : post / update\nBlock Kit button callbacks
 
+Telegram --> TelegramBot : long-poll\nmessage events
+TelegramBot --> Router : on_message
+TelegramBot --> Server : owning-node SSE after route lookup
+TelegramBot --> Telegram : reply / edit-in-place streaming\napproval button callbacks
+
 Teams .[hidden]. Slack
 
 ChannelService --> Bot : creates + runs
 ChannelService --> SlackBot : creates + runs
+ChannelService --> TelegramBot : creates + runs
 ChannelService --> Router : creates
 ChannelService --> SVC : register / heartbeat /\nderegister
 
