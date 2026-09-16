@@ -402,8 +402,6 @@ class TurnstoneTelegramBot:
         if await self.router.resolve_user("telegram", user_key):
             return True
         log.info("telegram.user_not_linked", chat_id=chat.id, user=user_key)
-        # TODO(telegram): mirror Slack's /link flow once the link command is
-        # exposed; reply inline so no extra machinery is needed.
         with contextlib.suppress(Exception):
             await self._app.bot.send_message(
                 chat_id=chat.id,
