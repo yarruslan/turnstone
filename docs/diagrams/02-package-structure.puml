@@ -61,6 +61,7 @@ package "turnstone/channels/" <<Rectangle>> {
     component [_routing.py\nChannelRouter] as router <<channel>>
     component [discord/bot.py\nDiscordBot] as discordbot <<channel>>
     component [slack/bot.py\nSlackBot (Socket Mode)] as slackbot <<channel>>
+    component [telegram/bot.py\nTelegramBot] as telegrambot <<channel>>
     component [cli.py\nturnstone-channel] as gateway <<channel>>
 }
 
@@ -174,9 +175,11 @@ tools --> schemas
 ' Channel dependencies
 gateway --> discordbot
 gateway --> slackbot
+gateway --> telegrambot
 gateway --> router
 discordbot --> sdkserver : direct HTTP + node SSE
 slackbot --> sdkserver : direct HTTP + node SSE
+telegrambot --> sdkserver : direct HTTP + node SSE
 router --> sdkserver : single-node/direct mode
 router --> sdkconsole : multi-node route/create/live
 router --> storage : channel_routes
