@@ -207,7 +207,7 @@ pip install 'turnstone[telegram]'
 ### 2. Configure Turnstone
 
 ```bash
-TURNSTONE_TELEGRAM_TOKEN=[REDACTED]        # bot token from BotFather
+TURNSTONE_TELEGRAM_TOKEN="123456:ABC..."        # bot token from BotFather
 ```
 
 or bare-metal:
