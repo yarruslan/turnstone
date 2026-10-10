@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from turnstone.core.model_turn import ModelTurnResult
 
 
-MAX_COMPLETION_REISSUES = 2
+MAX_COMPLETION_REISSUES = 15
 
 
 class ModelTurnLocalError(RuntimeError):
